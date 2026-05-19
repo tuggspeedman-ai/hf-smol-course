@@ -1,0 +1,72 @@
+# Unit 1 Exercise 4 — TRL CLI fine-tune (Option B: token demonstration of the
+# production workflow). Same model + LoRA hyperparameters as our Exercise 3 custom
+# script (notebooks/unit1/exercise3_sft_lora.py), but trains on a small slice of a
+# different dataset for a quick proof-of-concept of the CLI workflow.
+#
+# Dataset note: we use `smoltalk2_everyday_convs_think` (the course's own Ex4
+# reference dataset, a single-config mini-repo) rather than the multi-config
+# `smoltalk2/SFT` we used in Ex3 — the latter would trigger a 66GB download with
+# TRL's stock sft.py, which doesn't have the `hf_hub_download` single-file
+# workaround our custom Ex3 script uses (see .claude/memory/gotchas_smoltalk2_download.md).
+#
+# This YAML is documentation: `hf jobs uv run` only uploads the script, not adjacent
+# files, so the actual invocation passes equivalent flags inline. To reproduce
+# locally with the YAML directly:  trl sft --config configs/u1_ex4_sft.yaml
+#
+# Reference: course-materials/smol-course/units/en/unit1/4.md (Exercise 4 text) and
+# unit1/5.md (`hf jobs uv run` invocation pattern).
+
+# --- Model + dataset ---
+model_name_or_path: HuggingFaceTB/SmolLM3-3B-Base
+dataset_name: HuggingFaceTB/smoltalk2_everyday_convs_think  # course's Ex4 dataset
+
+# --- Training scope (small — this is a token rep of the TRL CLI workflow) ---
+max_steps: 60                  # 60 optimizer steps × 8 effective batch = 480 examples seen
+max_length: 2304               # matches Ex3's p99-derived cap
+
+# --- Batch + optimization (mirrors Ex3's SFTConfig) ---
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8 # effective batch = 8 (matches Ex3)
+learning_rate: 2.0e-4
+lr_scheduler_type: cosine
+warmup_ratio: 0.03
+optim: adamw_torch             # NOT adamw_torch_fused — CUDA-only path differs across envs
+bf16: true                     # CUDA: autocast enabled (TRL CLI flips this on its own)
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+dataloader_num_workers: 0
+seed: 42
+
+# --- LoRA (TRL CLI exposes PEFT directly) ---
+use_peft: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+# TRL accepts a comma-separated string here, not a YAML list. Same 7 projections as Ex3.
+lora_target_modules: q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+
+# --- Loss masking ---
+# NOTE: assistant_only_loss is NOT used here. The `everyday_convs_think` dataset is
+# already pre-templated into a flat `text` column (no raw `messages`), so TRL has no
+# way to identify which tokens are "assistant content" vs prompt. Ex3 (our custom
+# script) demonstrated completion-only loss with the raw-messages schema; Ex4 (this
+# CLI rep) demonstrates the canonical TRL CLI workflow with pre-templated text data.
+packing: false
+
+# --- Logging / eval / saving ---
+logging_steps: 5
+eval_strategy: "no"
+save_strategy: steps
+save_steps: 30
+save_total_limit: 2
+report_to: trackio
+run_name: u1-ex4-trl-cli-demo
+
+# --- Hub integration (push at every save so an early cancel still lands a checkpoint) ---
+push_to_hub: true
+hub_model_id: tuggspeedman-ai/SmolLM3-3B-trl-cli-demo
+hub_strategy: every_save       # key Ex4 lesson: every checkpoint is pushed live during
+#                                training — no "single push at end" failure mode like Ex3 had
+
+output_dir: ./u1-ex4-trl-cli-run

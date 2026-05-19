@@ -1,0 +1,62 @@
+[project]
+name = "hf-smol-course"
+version = "0.1.0"
+description = "Working through the Hugging Face Smol Fine-Tuning Language Models course — with a portfolio-worthy preference-aligned model as the final artifact"
+requires-python = ">=3.12"
+dependencies = [
+    # Core HF stack
+    "transformers>=4.46",
+    "datasets>=3.0",
+    "accelerate>=1.0",
+    "trl>=0.12",
+    "peft>=0.13",
+    "huggingface_hub>=0.26",
+    # Training / runtime
+    "torch>=2.4",
+    "sentencepiece",
+    "protobuf",
+    # Experiment tracking (HF-native, no account required)
+    "trackio",
+    # Utilities
+    "python-dotenv",
+    "tqdm",
+    "rich",
+]
+
+[project.optional-dependencies]
+# Jupyter for working through course notebooks
+notebooks = [
+    "jupyter",
+    "ipykernel",
+    "ipywidgets",
+    "matplotlib",
+    "pandas",
+]
+# Weights & Biases as an alternative to trackio
+wandb = ["wandb"]
+# Eval / reasoning tooling added incrementally per unit
+eval = [
+    "lighteval",
+    "evaluate",
+]
+# QLoRA / 4-bit quant — CUDA-only; don't install on macOS MPS
+quant = ["bitsandbytes"]
+dev = [
+    "pytest",
+    "ruff",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["course-materials", "notebooks/**/*.ipynb"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "slow: runs a real model (skipped by default)",
+    "integration: requires HF_TOKEN and/or GPU",
+]

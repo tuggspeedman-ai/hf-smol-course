@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Type checking
+.pyright/
+.mypy_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# HF / training artifacts (large, reproducible from code)
+.cache/
+outputs/
+checkpoints/
+runs/
+wandb/
+trackio_logs/
+*.safetensors
+*.bin
+*.pt
+*.onnx
+
+# HF datasets cache (if pointed inside the repo)
+data/
+
+# Claude Code (personal/local)
+.claude/memory/
+.claude/settings.json
+
+# Internal project management (kept private; portfolio README lives elsewhere)
+PLAN.md
+PLAN-archive.md
+ORIENT.md
+
+# Course reference materials (not our code)
+course-materials/
