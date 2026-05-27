@@ -10,25 +10,26 @@ By the end of the course I want a published, preference-aligned small model on t
 
 ## Status
 
-**Units 1 (SFT) and 2 (DPO) are complete.** Vision-language (U3) is next.
+**Units 1 (SFT), 2 (DPO), and 3 (VLM SFT) are complete.** U4 is the course's "Coming Soon" slot.
 
 | Unit | Topic | Status |
 |---|---|---|
 | U0 | Welcome / setup | Done |
 | U1 | Supervised fine-tuning with SmolLM3 | Done; 2 published adapters |
 | U2 | Preference alignment (DPO) | Done; 1 published adapter |
-| U3 | Vision-language models (SmolVLM2 fine-tuning) | Next |
+| U3 | Vision-language models (SmolVLM2 fine-tuning) | Done; 1 published adapter |
 | U4 | Coming Soon (per the course's own placeholder) | Pending |
 
 ---
 
 ## Published artifacts
 
-Three LoRA adapters on the Hugging Face Hub, all fine-tuned from `HuggingFaceTB/SmolLM3-3B-Base`:
+Four LoRA adapters on the Hugging Face Hub. The first three are fine-tuned from `HuggingFaceTB/SmolLM3-3B-Base`; the fourth from `HuggingFaceTB/SmolVLM2-2.2B-Instruct`:
 
 - **[tuggspeedman-ai/SmolLM3-3B-summarize-sft-lora](https://huggingface.co/tuggspeedman-ai/SmolLM3-3B-summarize-sft-lora)** is the SFT base. SFT on 12k summarization examples from SmolTalk2's `smol_summarize` split. Trained on an A100 80GB via HF Jobs, ~97 min, ~$4 of compute. Loss 1.03 → 0.56, eval 0.44. Built from `notebooks/unit1/exercise3_sft_lora.py`.
 - **[tuggspeedman-ai/SmolLM3-3B-summarize-dpo-lora](https://huggingface.co/tuggspeedman-ai/SmolLM3-3B-summarize-dpo-lora)** is the preference-aligned one, and the model the course is ultimately building toward. DPO on top of the SFT adapter above. It keeps training the *same* LoRA rather than starting a fresh one, with the pre-DPO adapter frozen as the reference policy. 12k preference pairs from SmolTalk2's Tulu 3 mix. A100 80GB via HF Jobs, ~2.4h, ~$6. Loss 0.70 → 0.59, eval reward accuracy 0.68, reward margin +0.47. Outputs are shorter and cleaner than the SFT model's, and it fixed a repetition loop the SFT model fell into on one prompt. Built from `notebooks/unit2/exercise2_dpo_lora.py`.
 - **[tuggspeedman-ai/SmolLM3-3B-trl-cli-demo](https://huggingface.co/tuggspeedman-ai/SmolLM3-3B-trl-cli-demo)** is the SFT recipe reproduced via TRL's stock `sft.py` CLI on a smaller dataset. The course's Exercise 4 "production workflow" rep. Config in `configs/u1_ex4_sft.yaml`.
+- **[tuggspeedman-ai/SmolVLM2-2.2B-chartqa-lora](https://huggingface.co/tuggspeedman-ai/SmolVLM2-2.2B-chartqa-lora)** is the vision-language sidetrack, the modality breadth piece. SFT on 2,830 chart Q&A examples from `HuggingFaceM4/ChartQA`. LoRA on the language model only, with the SigLIP vision encoder frozen (scoped via regex to `model.text_model.*`, since the textbook `q_proj`/`v_proj` list would otherwise also adapt the vision tower). A10G 24GB via HF Jobs, ~79 min, ~$2 of compute. Loss 0.745 → 0.219, eval token accuracy 0.82. The visible adaptation is the answer-format shift, from verbose paragraphs to single-word answers; factual chart reading is not much better than the base model already did. Built from `notebooks/unit3/exercise_vlm_sft.py`.
 
 ---
 
@@ -42,6 +43,8 @@ notebooks/unit1/                    Hands-on exercises for each unit
   exercise3_sft_lora_completed.ipynb  Captured session output from the local smoke run
 notebooks/unit2/
   exercise2_dpo_lora.py               The DPO training script (preference alignment)
+notebooks/unit3/
+  exercise_vlm_sft.py                 The VLM SFT training script (SmolVLM2 on ChartQA)
 
 configs/
   u1_ex4_sft.yaml                   TRL CLI hyperparameter config (Ex4 production rep)
@@ -107,6 +110,17 @@ hf jobs uv run \
   notebooks/unit2/exercise2_dpo_lora.py
 ```
 
+The U3 VLM SFT run uses `a10g-large` instead (cheaper, fits SmolVLM2-2.2B plus image tokens fine at batch 1; ~79 min, ~$2):
+
+```bash
+hf jobs uv run \
+  --flavor a10g-large \
+  --timeout 3h \
+  --secrets HF_TOKEN \
+  --env SMOKE=false \
+  notebooks/unit3/exercise_vlm_sft.py
+```
+
 ---
 
 ## What I've learned so far
@@ -126,10 +140,11 @@ The codebase has comments explaining these in context, not just as anecdotes.
 
 ## What's still missing
 
-- **U3 onward.** The vision-language unit and anything past it.
+- **U4** whenever it ships (currently "Coming Soon" per the course's own placeholder).
 - **A full fine-tune for comparison.** The current adapters are the local-feasible artifacts. A full FT on cloud would be a fair comparison point for the model cards.
 - **A proper eval pass.** Right now I'm relying on train/eval loss, reward margins, and qualitative before/after generations. The course's leaderboard eval (via `hf jobs run` + lighteval) is part of each unit's final-project submission, which I haven't tackled yet for either U1 or U2.
 - **Summarization-specific preference data.** The DPO step used a general preference mix, so the gains are in response quality and formatting rather than summarization quality per se. The on-domain dataset I wanted (`openai/summarize_from_feedback`) is gated behind a legacy loading script that current `datasets` refuses to run.
+- **A serious chart-reading model.** The U3 adapter learned the chart-answer format, not the chart-reading skill (vision encoder is frozen). Unfreezing the SigLIP encoder, or adding a connector-tuning phase, with more epochs and higher LoRA rank, would land a meaningful chart specialist. Out of scope for the current portfolio framing; would be a fun follow-on.
 - **Sample efficiency exploration.** Higher LoRA rank, more epochs, larger subsample. I haven't ablated.
 
 ---
