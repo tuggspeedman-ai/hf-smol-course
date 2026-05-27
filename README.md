@@ -4,7 +4,7 @@ I built [tinychat](https://github.com/tuggspeedman-ai/tinychat) to learn pre-tra
 
 This repo is the other half: **post-training**. SFT, preference alignment (DPO), and vision-language fine-tuning. The [Hugging Face Smol Fine-Tuning Language Models course](https://huggingface.co/learn/smol-course/unit0/1) is the curriculum; this repo is my working notebook through it.
 
-By the end of the course I want a published, preference-aligned small model on the HF Hub. The code that produced it lives here.
+I wanted to end the course with a published, preference-aligned small model on the HF Hub. It's [tuggspeedman-ai/SmolLM3-3B-summarize-dpo-lora](https://huggingface.co/tuggspeedman-ai/SmolLM3-3B-summarize-dpo-lora). The code that produced it lives here.
 
 ---
 
@@ -125,7 +125,7 @@ hf jobs uv run \
 
 ## What I've learned so far
 
-A few load-bearing lessons from Units 1 and 2. The full set lives in `.claude/memory/`, which I keep private. These are the ones worth surfacing publicly:
+These are a few lessons I think are worth sharing publicly:
 
 - **The chat template lives in the tokenizer, not the model.** SmolLM3-3B-Base ships a tokenizer with `chat_template = None`. Use the instruct tokenizer for templating; the vocab is shared with the base so the embedding indices align directly.
 - **`load_dataset("HuggingFaceTB/smoltalk2", "SFT", split=X)` resolves the entire 66GB config before isolating a split.** A bare `load_dataset` for a 2 MB split started downloading 7+ GB before I killed it. Fix: `hf_hub_download` of the exact parquet file.
